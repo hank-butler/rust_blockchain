@@ -19,6 +19,23 @@ pub struct Block {
     pub transaction: Vec<Transaction> 
 }
 
+pub struct Blockchain {
+    pub chain: Vec<Block>,
+    pub mempool: Mempool,
+    pub wallet: Wallet,
+    pub stakes: Stake,
+    pub validators: Validator,
+}
+
+pub struct Chain {
+    // Needs to be a vector of Blocks
+}
+
+pub struct Mempool {
+    // Mempool "memory and pool"
+    // mechaninism for storing unconfirmed transactions
+}
+
 impl Block {
     pub fn new (
         id: usize,
@@ -47,6 +64,9 @@ impl Block {
     }
 }
 
+pub fn genesis(wallet: Wallet) -> Block {
+    info!
+}
 
 fn main() {
 
