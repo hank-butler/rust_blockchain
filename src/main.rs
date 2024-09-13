@@ -3,12 +3,19 @@ use serde::{Deserialize, Serialize};
 use sha2::{Sha256, Digest};
 use serde_json;
 
+// use chrono crate for epoch time
+// utc:now().timestamp? <- will need this!
+// move structs and impl's to .rs files
 pub struct Transaction {
     // need to build out this struct
+    pub id: usize,
+    pub transaction_type: TransactionType, // need to make traits?,
+    pub transaction_input: TransactionInput,
+    pub transaction_output: TransactionOutput,
 }
 
 pub struct Wallet {
-    // got some work to do here
+    pub key_pair: String,
 }
 
 pub struct Block {
@@ -16,7 +23,9 @@ pub struct Block {
     pub hash: String,
     pub previous_hash: String,
     pub timestamp: i64,
-    pub transaction: Vec<Transaction> 
+    pub transaction: Vec<Transaction>,
+    pub signature: String,
+    pub difficulty: usize, 
 }
 
 pub struct Blockchain {
@@ -65,7 +74,14 @@ impl Block {
 }
 
 pub fn genesis(wallet: Wallet) -> Block {
-    info!
+    info!("Creation of Genesis Block");
+    Block::new(0, 
+        String::from("genesis"), 
+        timestamp? // could be 0, but will need to get epoch time, 
+        vec![], // instantiate empty vector to store transactions
+        difficulty, //hardcode?,
+        wallet,
+    )
 }
 
 fn main() {
