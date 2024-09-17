@@ -35,4 +35,35 @@ impl Block {
             difficulty,
         }
     }
+
+    pub fn genesis() -> Self {
+        let id = 0;
+        let timestamp = 1726543804; // Unix time as of 9:30 PM MT on 9/16/2024
+        let previous_hash = String::from("genesis"); // no previous hash since genesis block
+        let transaction = vec![]; // empty vector to store transactions
+        let signature = String::from("genesis");
+        let difficulty = 5;
+
+        let hash = block::calculate_hash(
+            &id,
+            &timestamp,
+            &previous_hash,
+            &transaction,
+            &validator,
+            &difficulty,
+
+        );
+
+        Self {
+            id,
+            hash,
+            previous_hash,
+            timestamp,
+            transaction,
+            transaction,
+            validator,
+            signature,
+            difficulty,
+        }
+    }
 }
