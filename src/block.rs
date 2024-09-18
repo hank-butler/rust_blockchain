@@ -68,4 +68,39 @@ impl Block {
             difficulty,
         }
     }
+
+    pub fn is_valid_block(&mut self, block: Block) -> bool {
+        
+        let prev_block = self.chain.last().unwrap();
+
+        if block.previous_hash != prev_block.hash {
+            warn!("Previous block has wrong hash.")
+            return false;
+        } else if block.hash!= block::calculate_hash(
+            &block.id,
+            &block.timestamp,
+            &block.previous_hash,
+            &block.transaction,
+            &block.validator,
+            &block.difficulty,
+        )
+        {
+            warn!("block with id: {} has invalid hash", block.id);
+            false
+        } else if prev_block.id + 1 != block.id {
+            warn!("block with id: {} does not have valid signature", block.id);
+            false
+
+        } else if !self.verify_leader(&block) {
+            warn!("block with id: {} has invalid validator", block.id);
+            false
+        }
+        self.execute_transaction(&block);
+
+        info!("Added new block to current chain at {}", &block.timestamp);
+
+        self.chain.push(block);
+        self.mempool.clear();
+        true
+    }
 }
