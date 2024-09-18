@@ -1,3 +1,5 @@
+use crate::block;
+
 // need to bring in transaction here
 pub struct Block {
     pub id: usize,
