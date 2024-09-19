@@ -1,4 +1,6 @@
 use crate::block;
+use serde::{Serialize, Deserialize};
+use sha2::{Sha256, Digest};
 
 // need to bring in transaction here
 pub struct Block {
@@ -103,4 +105,26 @@ impl Block {
         self.mempool.clear();
         true
     }
+}
+
+pub fn calculate_hash(
+    id: &usize,
+    timestamp: &i64,
+    previous_hash: &str,
+    transaction: &Vec<Transaction>, // work on Transaction
+) -> String {
+
+    let hash = serde_json::json!({
+        "id": id,
+        "previous_hash": previous_hash,
+        "transactions": transaction,
+        "timestamp", timestamp
+    });
+
+    Util::hash(&hash.to_string()) // need Util
+
+}
+
+pub fn hash(data: &String) -> String {
+    Digest(data.as_bytes()) // how do I use Digest from sha2?
 }
