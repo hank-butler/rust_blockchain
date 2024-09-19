@@ -11,9 +11,7 @@ mod transaction;
 // move structs and impl's to .rs files
 
 
-pub struct Wallet {
-    pub key_pair: String,
-}
+
 
 
 
@@ -30,16 +28,16 @@ pub struct Mempool {
 
 
 
-pub fn genesis(wallet: Wallet) -> Block {
-    info!("Creation of Genesis Block");
-    Block::new(0, 
-        String::from("genesis"), 
-        timestamp? // could be 0, but will need to get epoch time, 
-        vec![], // instantiate empty vector to store transactions
-        difficulty, //hardcode?,
-        wallet,
-    )
-}
+// pub fn genesis(wallet: Wallet) -> Block {
+//     info!("Creation of Genesis Block");
+//     Block::new(0, 
+//         String::from("genesis"), 
+//         timestamp? // could be 0, but will need to get epoch time, 
+//         vec![], // instantiate empty vector to store transactions
+//         difficulty, //hardcode?,
+//         wallet,
+//     )
+// }
 
 fn main() {
 
