@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-
+use crate::transaction::Transaction;
+use serde::{Deserialize, Serialize};
 
 pub struct Stake {
     pub accounts: Vec<String>,
@@ -39,8 +40,8 @@ impl Stake {
             .to_string()
     }
 
-    pub fn update(&mut self, txn: &Transaction) {
-        self.add_stake(&txn.txn_input.from, &(*&txn.txn_output.amount as u64))
+    pub fn update(&mut self, transaction: &Transaction) {
+        self.add_stake(&transaction.transaction_input.from, &(*&transaction.transaction_output.amount as u64))
     }
 
     pub fn get_balance(&mut self, address: &String) -> &u64 {
