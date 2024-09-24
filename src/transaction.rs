@@ -1,10 +1,12 @@
-use crate::wallet::Wallet; // why is wallet not being recognized?
+use crate::wallet::Wallet; // why is wallet not being recognized? Update, probably need to actually build out impl
 use chrono::prelude::*; // what is prelude?
 use serde::{Deserialize, Serialize};
+use serde_json;
 use uuid::Uuid;
+use serde_derive;
 
 
-pub const TRANSACTION_FEE: f64 = 1.0;
+pub const TRANSACTION_FEE: f64 = 1.0; // hardcoded for when simulating network
 
 // #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum TransactionType {
@@ -13,7 +15,7 @@ pub enum TransactionType {
     VALIDATOR
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug)]
 pub struct TransactionInput {
     pub timestamp: i64,
     pub from: String,
@@ -22,11 +24,11 @@ pub struct TransactionInput {
 
 impl TransactionInput {
     pub fn new(
-        sender_waller: &mut Wallet,
+        sender_wallet: &mut Wallet,
         transaction_output: &String
     ) -> Self {
     Self {timestamp: Utc::now().timestamp(),
-        from: sender_waller.get_public_key(),
+        from: sender_wallet.get_public_key(),
         signature: sender_wallet.sign(transaction_output),
         }
     }
@@ -41,12 +43,13 @@ pub struct Transaction {
     // sender, receiver, timestamp, amount
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(serde_derive::Deserialize)]
 pub struct TransactionOutput {
     pub to: String,
     pub amount: f64,
     pub fee: f64,
 }
+
 
 impl TransactionOutput {
     pub fn new(
@@ -83,8 +86,9 @@ impl Transaction {
 
         let transaction_input = TransactionInput::new(sender_wallet, &serialized);
 
+        // can remove : up to , don't need variable type if same name as parameter
         Ok(Self {
-            id: id,
+            id,
             transaction_type: transaction_type,
             transaction_output: transaction_output,
             transaction_input: transaction_input,
@@ -97,20 +101,17 @@ impl Transaction {
             Err(e) => return Err(VerifyTransactionError::DecodeJsonErr(e)),
         };
 
-        let result = match Util::verify_signature(
-            &txn._input.from,
-            &txn_message,
-            &txn.txn_input.signature,
+        let result = match verify_signature(
+            &transaction._input.from,
+            &transaction_message,
+            &transaction.transaction_input.signature,
         ) {
             Ok(result) => result,
-            Err(e) => match e {
-                Err::DecodeStrError(_) => false, // need more specifc error here
-                // Err::DecodeHexError(_) => false,
-            },
-        };
+            Err(e) => false,
+            };
+        }
 
         Ok(result)
-    }
+}
 
     
-}
