@@ -1,6 +1,9 @@
 use crate::block;
+use crate::wallet::Wallet;
+use crate::transaction::Transaction;
 use serde::{Serialize, Deserialize};
 use sha2::{Sha256, Digest};
+
 
 // need to bring in transaction here
 pub struct Block {
@@ -37,6 +40,10 @@ impl Block {
             // validator, need to work on this part
             signature,
             difficulty,
+        }
+
+        pub fn calculate_hash() {
+
         }
     }
 
