@@ -22,4 +22,15 @@ impl Wallet {
 
         Self { keypair }
     }
+
+    pub fn generate_wallet() {
+        let mut csprng = OsRng {};
+        let keypair = Keypair::generate(&mut csprng);
+        let public_key = hex::encode(keypair.public.to_bytes());
+
+        println!("Remember to keep your keys safe!");
+        println!("Public Key: {}", public_key);
+        println!("Key pair: {}", keypair);
+        
+    }
 }
