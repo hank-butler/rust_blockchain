@@ -4,7 +4,7 @@ use ed25519_dalek::{Keypair, Signer}; // helps with keypair generation
 
 
 pub struct Wallet {
-    pub key_pair: String,
+    pub keypair: String,
 }
 
 impl Wallet {
@@ -31,6 +31,27 @@ impl Wallet {
         println!("Remember to keep your keys safe!");
         println!("Public Key: {}", public_key);
         println!("Key pair: {}", keypair);
-        
+
+    }
+
+    pub fn get_keypair(keypair_string: &String) -> Keypair {
+        Keypair::from_bytes(&hex::decode(keypair_string).expect("Expected hex to bytes conversion"))
+            .expect("Byte to Keypair Conversion")
+    }
+
+    pub fn get_wallet(keypair: String) -> Wallet {
+        Self {keypair}
+    }
+
+    pub fn sign(&mut self, data_hash: &String) -> String {
+        hex::encode(Wallet::get_keypair(&self.keypair).sign(data_hash.as_bytes()))
+    }
+
+    pub fn get_public_key(&mut self) -> String {
+        hex::encode(Wallet::get_keypair(&self.keypair).public.as_bytes())
+    }
+
+    pub fn get_balanca<'a>(&mut self, blockchain: &'a mut Blockchain) -> &'a f64 {
+        blockchain.get_balance(&self.get_public_key())
     }
 }
