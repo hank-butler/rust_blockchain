@@ -1,13 +1,13 @@
 use crate::transaction::Transaction;
 
 pub struct Validator {
-    pub accounts: Vec<String>,
+    pub accounts: Vec<String>, // may need to be a wallet?
 }
 
 impl Validator {
     pub fn new() -> Self {
         Self {
-            accounts: vec![],
+            accounts: vec![], // example of PoS I was using hardcoded accounts
         }
     }
 
