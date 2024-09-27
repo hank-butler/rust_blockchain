@@ -134,7 +134,7 @@ impl Blockchain {
     }
 
     pub fn is_staking_valid(
-        balanced: u64,
+        balance: u64,
         difficulty: u32,
         timestamp: i64,
         previous_hash: &String,
@@ -154,5 +154,153 @@ impl Blockchain {
 
         decimal_staking_hash <= big_balance_diff
 
+    }
+
+    pub fn create_block(&mut self, timestamp: i64) -> Block {
+        info!("Creating new block at: {}", timestamp);
+
+        Block::new(
+            self.chain.len(),
+            self.chain.last().unwrap().hash.clone(),
+            timestamp,
+            self.mempool.transactions.clone(),
+            self.get_difficulty(),
+            self.wallet.clone(),
+        )
+    }
+
+    pub fn is_valid_block(&mut self, block: Block) -> Bool {
+        let prev_block = self.chain.last().unwrap();
+
+        if block.previous_hash != prev_block.hash {
+            // raise a warning if previous hashes don't match
+            warn!("Block with id: {} has mismatch in previous hash. {} vs {}",
+                block.id, block.previous_hash, prev_block.hash
+            );
+            return false;  
+            } else if {
+                block.hash != block::calculate_hash(
+                    &blocok.id,
+                    &block.timestamp,
+                    &block.previous_hash,
+                    &block.transaction,
+                    &block.validator,
+                    &block.difficulty,) 
+                    // raise warning if block has invalid hash!
+                    warn!("block with id: {} has invalid hash", block.id);
+                    return false;
+            } else if prev_block.id + 1 != block.id {
+                warn!("Block with id: {} is not subsequent block after: {}", block.id, prev_block.id);
+                return false;
+            } else if !Block::verify_block_signature(&block) {
+                warn!("block with id: {} has invalid sig", block.id);
+                return false;
+            } else if !Blockchain::is_staking_valid(
+                self.stakes.get_balance(&block.validator).clone(),
+                block.difficulty,
+                block.timestamp,
+                &block.previous_hash,
+                &block.validator,
+            ) {
+                warn!("Block with id: {} has invalid stake", block.id);
+                return false;
+            }
+
+            self.add_new_block(block);
+            true
+    }
+
+    pub fn add_new_block(&mut self, block: Block) {
+        self.execute_transaction(&block);
+        info!("Adding new block to chain");
+        self.chain.push(block);
+        self.mempool.clear();
+    }
+
+    pub fn verify_leader(&mut self, block: &Block) -> bool {
+        self.stakes.get_max(&self.validators.accounts) == block.validator
+    }
+
+    pub fn replace_chain(&mut self, chain: &Vec<Block>) {
+        if chain.len() <= self.chain.len() {
+            warn!("Input chain is longer than current chain");
+            return;
+        } else if !self.is_valid_chain(chain) {
+            warn!("Input chain invalid");
+            return;
+        }
+
+        info!("Current blockchain being replaced by input chain");
+
+        self.reset_state();
+        self.execute_chain(chain);
+        self.chain == chain.clone();
+    }
+
+    pub fn is_valid_chain(&mut self, chain: &Vec<Block>) -> bool {
+        if *chain.first().unwrap() != Block::genesis() {
+            return false;
+        }
+
+        for i in 0..chain.len() {
+            if i == 0 {
+                continue;
+            };
+
+            let block = &chain[i]; //indexing into first block post-genesis
+            let prev_block = &chain[i-1];
+
+            if prev_block.hash != block.previous_hash {
+                warn!("Block with id{} has incorrect previous hash", block.id);
+                return false;
+
+            } else if prev_block.id + 1 != block.id {
+                warn!("block with id: {} is not subsequent block following: {}", block.id, prev_block.id);
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn reset_state(&mut self) {
+        let genesis = Block::genesis();
+        self.chain = vec![genesis];
+        self.accounts = Account::new();
+        self.stakes = Stake::new();
+        self.validators = Validator::new();
+    }
+
+    pub fn execute_chain(&mut self, chain: &Vec<Block>) {
+        chain.iter().for_each(|block| self.execute_transaction(block));
+    }
+
+    pub fn execute_transaction(&mut self, block: &Block) {
+        block.transaction.iter().for_each(|x| match x.transaction_type {
+            TransactionType::TRANSACTION => {
+                self.accounts.transfer(
+                    &x.transaction_input.from,
+                    &x.transaction_output.to,
+                    &x.transaction_output.amount,
+                );
+
+                self.accounts.transfer(&x.transaction_input.from, &block.validator, &x.transaction_output.fee);
+            }
+            TransactionType::STAKE => {
+                self.stakes.update(&x);
+                self.accounts.decrement(&x.transaction_input.from, &x.transaction_output.amount);
+                self.accounts.transfer(&x.transaction_input.from, &block.validator, &x.transaction_output.fee);
+            }
+
+            TransactionType::VALIDATOR => {
+                if self.validators.update(&x) {
+                    self.accounts.decrement(&x.transaction_input.from, &x.transaction_output.amount);
+                    self.accounts.transfer(&x.transaction_input.from, &block.validator, &x.transaction_output.fee,);
+                }
+            }
+        });
+    }
+
+    pub fn get_balance(&mut self, public_key: &String) -> f64 {
+        self.accounts.get_balance(public_key)
     }
 }
