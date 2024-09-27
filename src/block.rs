@@ -1,12 +1,14 @@
+use crate::util::Util;
 use crate::block;
 use crate::wallet::Wallet;
 use crate::transaction::Transaction;
 use serde::{Serialize, Deserialize};
+// use serde_derive::{Deserialize, Serialize};
 use sha2::{Sha256, Digest};
 use log::info;
 
 // need to bring in transaction here
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Block {
     pub id: usize,
     pub hash: String,
@@ -87,7 +89,7 @@ impl Block {
         }
     }
 
-    pub fn verify_block_signature(block: &Block) -> {
+    pub fn verify_block_signature(block: &Block) -> bool {
         info!("Checking for block signature verification");
 
         let hash = block::calculate_hash(
@@ -104,3 +106,24 @@ impl Block {
 
 }
 
+pub fn calculate_hash (
+    id: &usize,
+    timestamp: &i64,
+    previous_hash: &str,
+    transaction: &Vec<Transaction>,
+    validator: &String,
+    difficulty: &u32,
+) -> String {
+    info!("Calculating hash");
+
+    let hash = serde_json::json!(
+        {"id": id,
+        "previous_hash": previous_hash,
+        "transactions": transaction,
+        "timestamp": timestamp,
+        "validator": validator,
+        "difficulty": difficulty,}
+    );
+
+    Util::hash(&hash.to_string())
+}
