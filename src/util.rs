@@ -4,6 +4,8 @@ use log::{warn, info};
 use sha2::{Sha256, Digest};
 use uuid::Uuid;
 
+pub mod util;
+
 pub struct Util;
 
 pub enum VerifySigErr {
