@@ -1,21 +1,22 @@
 use crate::wallet::Wallet; // why is wallet not being recognized? Update, probably need to actually build out impl
 use chrono::prelude::*; // what is prelude?
 use serde::{Deserialize, Serialize};
-use serde_json;
+// use serde_json;
+// use serde_derive::{Serialize, Deserialize};
 use uuid::Uuid;
-use serde_derive;
+use crate::util::{Util, VerifySigErr};
 
 
 pub const TRANSACTION_FEE: f64 = 1.0; // hardcoded for when simulating network
 
-// #[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TransactionType {
     TRANSACTION,
     STAKE,
     VALIDATOR
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TransactionInput {
     pub timestamp: i64,
     pub from: String,
@@ -34,6 +35,7 @@ impl TransactionInput {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Transaction {
     // need to build out this struct
     pub id: usize,
@@ -43,7 +45,7 @@ pub struct Transaction {
     // sender, receiver, timestamp, amount
 }
 
-#[derive(serde_derive::Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TransactionOutput {
     pub to: String,
     pub amount: f64,
@@ -101,13 +103,16 @@ impl Transaction {
             Err(e) => return Err(VerifyTransactionError::DecodeJsonErr(e)),
         };
 
-        let result = match verify_signature(
-            &transaction._input.from,
+        let result = match Util::verify_signature(
+            &transaction.transaction_input.from,
             &transaction_message,
             &transaction.transaction_input.signature,
         ) {
             Ok(result) => result,
-            Err(e) => false,
+            Err(e) => match e {
+                VerifySigErr::DecodeStrError(_) => false,
+                VerifySigErr::DecodeHexError(_) => false,
+            };
             };
         }
 

@@ -42,7 +42,7 @@ pub enum EventType {
     Init,
     Mining
 }
-
+#[derive(NetworkBehaviour)]
 pub struct AppBehaviour {
     pub floodsub: Floodsub,
     pub mdns: Mdns,
@@ -135,3 +135,70 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for AppBehaviour {
     }
 }
 
+pub fn get_list_peers(swarm: &Swarm<AppBehaviour>) -> Vec<String> {
+    let nodes = swarm.behaviour().mdns.discovered_nodes();
+
+    let mut unique_peers = HashSet::new();
+
+    for peer in nodes{
+        unique_peers.insert(peer);
+    }
+    unique_peers.iter().map(|p| p.to_string()).collect()
+}
+
+pub fn handle_print_chain(swarm: &Swarm<AppBehaviour>) {
+    let json = serde_json::to_string_pretty(&swarm.behaviour().blockchain.chain);
+
+    info!("{}", json);
+}
+
+pub fn set_wallet(cmd: &str, swarm: &mut Swarm<AppBehaviour>) {
+    if let Some(data) = cmd.strip_prefix("set wallet") {
+        let arg: Vec<&str> = data.split_whitespace().collect();
+        let key_pair = arg.get(0).expect("Keypair not found").to_string();
+
+        swarm.behaviour_mut().blockchain.wallet = Wallet::get_wallet(key_pair);
+    }
+}
+
+pub fn handle_transaction_creation(cmd: &str, swarm: &mut Swarm<AppBehaviour>) {
+    if let Some(data) = cmd.strip_prefix("create transaction") {
+        let arg: Vec<&str> = data.split_whitespace().collect();
+
+        let to = arg.get(0).expect("No recipient for transaction found.").to_string();
+
+        let amount = arg.get(1).expect("No transaction amount found!").to_string().parse::<f64>().expect("Convert transaction amount from string to float");
+
+        let category = arg.get(2).expect("No transaction type found.").to_string();
+
+        let type_transaction = match category.as_str() {
+            "transaction" => crate::transaction::TransactionType::TRANSACTION,
+            "stake" => crate::transaction::TransactionType::STAKE,
+            "validator" => crate::transaction::TransactionType::VALIDATOR,
+            _ => crate::transaction::TransactionType::TRANSACTION,
+        };
+
+        let behaviour = swarm.behaviour_mut();
+
+        let mut wallet = behaviour.blockchain.wallet.clone();
+
+        if amount + transaction::TRANSACTION_FEE > *behaviour.blockchain.get_balance(&wallet.get_public_key()) {
+            warn!("Wallet has insufficient amount");
+            return;
+        }
+
+        match Blockchain::create_transaction(&mut wallet, to, amount, transaction_type){
+            Ok(x) => {
+                let json = serde_json::to_string(&x).expect("Converted json");
+
+                info!("Adding transaction to mempool");
+                behaviour.blockchain.mempool.add_transaction(x);
+                info!("Broadcasting transaction");
+                behaviour.floodsub.publish(TRANSACTION_TOPIC.clone(), json.as_bytes());
+            }
+            Err(_) => {
+                warn!("Failed to create transaction \n Failed to serialize transactions into json.");
+            }
+        }
+    }
+}

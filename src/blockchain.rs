@@ -44,7 +44,7 @@ impl Blockchain {
         sender_wallet: &mut Wallet,
         to: String,
         amount: f64,
-        tranaction_type: TransactionType,
+        transaction_type: TransactionType,
     ) -> Result<Transaction, serde_json::Error> {
         Transaction::new(sender_wallet, to, amount, transaction_type)
     }

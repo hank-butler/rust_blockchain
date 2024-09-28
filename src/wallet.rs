@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use rand::rngs::OsRng;
 use ed25519_dalek::{Keypair, Signer}; // helps with keypair generation
-
-pub mod wallet;
+use crate::blockchain::Blockchain;
 
 pub struct Wallet {
     pub keypair: String,

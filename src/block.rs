@@ -68,7 +68,7 @@ impl Block {
         let signature = String::from("genesis");
         let difficulty = 5; // arbitrary hardcoded with 5
 
-        let hash = block::calcualte_hash(
+        let hash = block::calculate_hash(
             &id,
             &timestamp,
             &previous_hash,
