@@ -27,12 +27,14 @@ pub static CHAIN_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("chains"));
 pub static BLOCK_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("blocks"));
 pub static TRANSACTION_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("transactions"));
 
+#[derive(Serialize)]
 pub struct ChainResponse {
     pub blocks: Vec<Block>,
     pub transactions: Vec<Transaction>,
     pub receiver: String,
 }
 
+#[derive(Serialize)]
 pub struct ChainRequest {
     pub from_peer_id: String,
 }
@@ -108,7 +110,7 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
                 if !self.blockchain.tran_check(&transaction) && Transaction::verify_transaction(&transaction).is_ok() {
                     info!("Relaying new valid transaction");
                     let json = serde_json::to_string(&transaction).expect("Response converted to json");
-                    self.floodsub.publich(TRANSACTION_TOPIC.clone(), json.as_bytes());
+                    self.floodsub.publish(TRANSACTION_TOPIC.clone(), json.as_bytes());
                     self.blockchain.add_tran(transaction);
                 }
             }

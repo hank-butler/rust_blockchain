@@ -178,7 +178,7 @@ impl Blockchain {
                 block.id, block.previous_hash, prev_block.hash
             );
             return false;  
-            } else if {
+        } else if 
                 block.hash != block::calculate_hash(
                     &blocok.id,
                     &block.timestamp,
@@ -187,15 +187,16 @@ impl Blockchain {
                     &block.validator,
                     &block.difficulty,) 
                     // raise warning if block has invalid hash!
+                {   
                     warn!("block with id: {} has invalid hash", block.id);
                     return false;
-            } else if prev_block.id + 1 != block.id {
+        } else if prev_block.id + 1 != block.id {
                 warn!("Block with id: {} is not subsequent block after: {}", block.id, prev_block.id);
                 return false;
-            } else if !Block::verify_block_signature(&block) {
+        } else if !Block::verify_block_signature(&block) {
                 warn!("block with id: {} has invalid sig", block.id);
                 return false;
-            } else if !Blockchain::is_staking_valid(
+        } else if !Blockchain::is_staking_valid(
                 self.stakes.get_balance(&block.validator).clone(),
                 block.difficulty,
                 block.timestamp,
@@ -204,10 +205,10 @@ impl Blockchain {
             ) {
                 warn!("Block with id: {} has invalid stake", block.id);
                 return false;
-            }
+        }
 
-            self.add_new_block(block);
-            true
+        self.add_new_block(block);
+        true
     }
 
     pub fn add_new_block(&mut self, block: Block) {
@@ -287,15 +288,20 @@ impl Blockchain {
             }
             TransactionType::STAKE => {
                 self.stakes.update(&x);
-                self.accounts.decrement(&x.transaction_input.from, &x.transaction_output.amount);
+                self.accounts.decrement(&x.transaction_input.from, &x.transaction_output, amount);
                 self.accounts.transfer(&x.transaction_input.from, &block.validator, &x.transaction_output.fee);
             }
 
             TransactionType::VALIDATOR => {
-                if self.validators.update(&x) {
-                    self.accounts.decrement(&x.transaction_input.from, &x.transaction_output.amount);
-                    self.accounts.transfer(&x.transaction_input.from, &block.validator, &x.transaction_output.fee,);
+                if self.validators.update(&x, amount) {
+                    self.accounts.decrement(&x.transaction_input.from, &x.transaction_output.to, amount);
+                    self.accounts.transfer(&x.transaction_input.from, &x.transaction_output.to, amount);
                 }
+                
+                // if self.validators.update() {
+                //     self.accounts.decrement(&x.transaction_input, &x.transaction_output, amount);
+                //     self.accounts.transfer(&x.transaction_input.from, &block.validator, &x.transaction_output.fee,);
+                // }
             }
         });
     }

@@ -24,8 +24,8 @@ impl Account {
     pub fn transfer(&mut self, from: &String, to: &String, amount: &f64) {
         self.initialize(from);
         self.initialize(to);
-        self.increment(to, amount);
-        self.decrement(from, amount);
+        self.increment(from, to, amount);
+        self.decrement(from, to, amount);
     }
 
     pub fn increment(&mut self, from: &String, to:&String, amount: &fg4) {

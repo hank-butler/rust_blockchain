@@ -1,4 +1,4 @@
-use ed25519_dalek::{ed25519::Error, PublicKey, Signature, Verifier};
+use ed25519_dalek::{ed25519::Error, PublicKey, Signature, Verifier, SigningKey};
 use hex::FromHexError;
 use log::{warn, info};
 use sha2::{Sha256, Digest};
@@ -29,6 +29,7 @@ impl Util {
     ) -> Result<bool, VerifySigErr> {
         let public_key = hex::decode(from_public_key);
         let dalek_public_key = PublicKey::from_bytes(&public_key)?;
+        // let dalek_public_key = SigningKey::(&public_key)?;
 
         let signature = hex::decode(from_signature)?;
         let dalek_sig = &Signature::from_bytes(&signature)?;

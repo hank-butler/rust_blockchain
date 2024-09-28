@@ -127,12 +127,12 @@ fn main() {
                     }
                 }
 
-                p2p::EventType::Input(line) => match line.as_str() {
-                    "ls c" => p2p::handle_print_chain(&mut swarm),
-                    cmd if cmd.starts_with("set wallet") => p2p::set_wallet(cmd, &mut swarm),
-                    cmd if cmd.starts_with("create transaction") => p2p::handle_transaction_creation(cmd, &mut swarm),
-                    _ => error!("Command unknown or not found"),
-                }
+                // p2p::EventType::Input(line) => match line.as_str() {
+                //     "ls c" => p2p::handle_print_chain(&mut swarm),
+                //     cmd if cmd.starts_with("set wallet") => p2p::set_wallet(cmd, &mut swarm),
+                //     cmd if cmd.starts_with("create transaction") => p2p::handle_transaction_creation(cmd, &mut swarm),
+                //     _ => error!("Command unknown or not found"),
+                // }
             }
         }
     }

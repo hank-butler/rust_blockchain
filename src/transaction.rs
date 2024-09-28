@@ -16,6 +16,8 @@ pub enum TransactionType {
     VALIDATOR
 }
 
+
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TransactionInput {
     pub timestamp: i64,
@@ -112,11 +114,14 @@ impl Transaction {
             Err(e) => match e {
                 VerifySigErr::DecodeStrError(_) => false,
                 VerifySigErr::DecodeHexError(_) => false,
+                }
             };
-            };
+        
+        Ok(result)
+
         }
 
-        Ok(result)
+        
 }
 
     
