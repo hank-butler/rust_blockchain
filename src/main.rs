@@ -21,21 +21,29 @@ use serde_json;
 //     time::sleep
 // };
 
-mod account;
-mod block;
-mod blockchain;
-mod mempool;
-mod p2p;
-mod stake;
-mod transaction;
-mod util;
-mod validator;
-mod wallet;
+// mod account;
+// mod block;
+// mod blockchain;
+// mod mempool;
+// mod p2p;
+// mod stake;
+// mod transaction;
+// mod util;
+// mod validator;
+// mod wallet;
 
-use blockchain::Blockchain;
-use wallet::Wallet;
+use accounts::account::Account;
+use accounts::wallet::Wallet;
+use blockchain::block::Block;
+use blockchain::transaction::Transaction;
+use staking::stake::Stake;
+use network::p2p::Network;
 
-use crate::p2p::PEER_ID;
+
+// use blockchain::Blockchain;
+// use wallet::Wallet;
+
+// use crate::p2p::PEER_ID;
 
 // use chrono crate for epoch time
 // utc:now().timestamp? <- will need this!
