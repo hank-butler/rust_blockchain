@@ -1,3 +1,8 @@
+mod accounts;
+mod blockchain;
+mod staking;
+
+
 use std::time::Duration;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
