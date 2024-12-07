@@ -82,7 +82,7 @@ impl Block {
     }
 
     pub fn from_string(block: String) -> Block {
-        serde_json::from_string(&block).expect("Failed to deserialize block")
+        serde_json::from_str(&block).expect("Failed to deserialize block")
     }
 
     pub fn block_hash_from_instance(&self) -> String {
