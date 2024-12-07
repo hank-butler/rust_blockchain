@@ -55,7 +55,47 @@ impl Block {
         }
     }
 
-    
+    pub fn validate(
+        block: Block,
+        prev_block: Block
+    ) -> bool {
+        if prev_block.index +1 != block.index {
+            return false;
+        }
+        if prev_block.hash != prev_block.prev_hash.unwrap() {
+            return false;
+        }
+
+        if block.prev_hash.is_none() && prev_block.index + 1 != 1 {
+            return false;
+        }
+
+        if Block::block_hash_from_instance(&block) != block.hash {
+            return false
+        }
+
+        return true
+    }
+
+    pub fn to_string(&mut self) -> String {
+        serde_json::to_string(self).expect("Block unable to be serialized")
+    }
+
+    pub fn from_string(block: String) -> Block {
+        serde_json::from_string(&block).expect("Failed to deserialize block")
+    }
+
+    pub fn block_hash_from_instance(&self) -> String {
+        hash_input(&format!("{}{}{}{}", &self.index, &self.timestamp, &self.bpm, &self.prev_hash.as_ref().unwrap()))
+    }
+
+    pub fn block_hash_from_params(index: u64, timestamp: &str, bpm: String, prev_hash: Option<&String>) -> String {
+        hash_input(&format!("{}{}{}{}", index, timestamp, bpm, prev_hash))
+    }
+
+
+
+
 }
 
 
