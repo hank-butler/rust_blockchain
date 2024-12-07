@@ -1,17 +1,19 @@
 use sha2::{Sha256, Digest};
 use hex;
 use chrono::{DateTime, Local};
-use crate::blockchain::{Block, Blockchain};
-use crate::staking::{Validator};
+use crate::blockchain::block::Block;
+use crate::blockchain::blockchain::Blockchain;
+use crate::staking::validator::Validator;
+use crate::mempool::{Blockstorage, CandidateStore, Storage, Blockstore};
 use std::fs;
 use std::path::{Path, PathBuf};
 use rand::Rng;
 
 pub fn hash_input(input: &str) -> String {
-    let mut hasher = Sha::new();
+    let mut hasher = Sha256::new();
     hasher.update(input);
     let result = hasher.finalize();
-    hex::encode(result);
+    hex::encode(result)
 }
 
 pub fn chrono_timestamp() -> String {
@@ -40,7 +42,7 @@ pub fn create_validator_set(
 ) -> Vec<Validator>{
     let mut validators: Vec<Validator> = Vec::new();
     for i in 0..n{
-        validator.push(Validator{
+        validators.push(Validator{
             address: format!("validator_{}", i),
             stake: stakes[i as usize]
         })
@@ -71,8 +73,27 @@ pub fn get_block_with_height(storage: &Storage, height: &u64) -> Block {
 
 pub fn purge_dbs(blockstorage: PathBuf, candidatestorage: PathBuf) {
     if Path::new(&blockstorage).exists() {
+        match fs::remove_file(blockstorage) {
+            Ok(_) => println!("Blockstorage deleted successfully"),
+            Err(e) => eprintln!("Error deleting: {:?}", e),
+        }
         
+    } else {
+        println!("Block storage not found");
     }
+
+    if Path::new(&candidatestorage).exists() {
+        match fs::remove_file(candidatestorage) {
+            Ok(_) => println!("Candidate storage deleted successfully."),
+            Err(e) => eprintln!("Error deleting candidate storage, {:?}", e),
+        }
+    } else {
+        println!("Warning: Candidate storage does not exist.");
+    }
+}
+
+pub fn generate_random_number() -> u64{
+    rand::thread_rng().gen()
 }
 
 

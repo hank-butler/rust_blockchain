@@ -1,18 +1,31 @@
-mod accounts;
 mod blockchain;
 mod staking;
+mod util;
 
 
-use std::time::Duration;
-use log::{error, info, warn};
-use serde::{Deserialize, Serialize};
-use sha2::{Sha256, Digest};
-use serde_json;
-use accounts::account::Account;
-use accounts::wallet::Wallet;
-use blockchain::block::Block;
-use blockchain::transaction::Transaction;
-use staking::stake::Stake;
+
+
+
+
+
+
+
+
+// mod accounts;
+// mod blockchain;
+// mod staking;
+
+
+// use std::time::Duration;
+// use log::{error, info, warn};
+// use serde::{Deserialize, Serialize};
+// use sha2::{Sha256, Digest};
+// use serde_json;
+// use accounts::account::Account;
+// use accounts::wallet::Wallet;
+// use blockchain::block::Block;
+// use blockchain::transaction::Transaction;
+// use staking::stake::Stake;
 
 
 // use blockchain::Blockchain;
@@ -25,11 +38,11 @@ use staking::stake::Stake;
 
 
 
-// make main async? 
+// // make main async? 
 
-fn main() {
-    println!("woohoo restarting!");
-}
+// fn main() {
+//     println!("woohoo restarting!");
+// }
 
 // async fn main() {
 //     info!("Peer Id: {}", PEER_ID.clone());

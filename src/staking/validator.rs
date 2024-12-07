@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 use serde_json;
-use super::utils::{hash_input, chrono_timestamp};
+use crate::util::{hash_input, chrono_timestamp,generate_random_number};
 use crate::Block;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -13,6 +13,14 @@ pub struct Validator {
 pub struct Vote {
     pub block: Block,
     pub stake: u64
+}
+
+pub fn get_validator_weight(stake: u64, total_votes: u64) -> u128 {
+    let seed = generate_random_number();
+    let weight: u128 = (seed as u128 * stake as u128) / total_votes as u128;
+
+    println!("Weight: {}, \n stake: {}, \n total votes: {}, \n seed: {}", weight, stake, total_votes, seed);
+    return weight;
 }
 
 
