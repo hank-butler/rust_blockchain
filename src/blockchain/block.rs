@@ -1,3 +1,5 @@
+use core::time;
+
 use serde::{Serialize, Deserialize};
 use serde_json;
 // use crate::utils // <- add to this
@@ -13,6 +15,46 @@ pub struct Block {
 }
 
 impl Block {
+    pub fn new(
+        index: u64,
+        timestamp: &str,
+        bpm: String,
+        prev_hash: Option<&String>,
+        validator: Validator
+    ) -> Block {
+        let new_block_hash: String = Block::block_hash_from_params(
+            index,
+            &timestamp,
+            bpm.clone(),
+            prev_hash
+        );
+        Block {
+            index: index,
+            timestamp: timestamp.to_string(),
+            bpm: bpm,
+            hash: new_block_hash,
+            prev_hash: prev_hash.clone(),
+            validator: validator
+        }
+    }
+
+    pub fn generate(
+        prev_block: Block, 
+        bpm: String, 
+        validator: Validator
+    ) -> Block {
+        let timestamp: String = chrono_timestamp();
+        let new_block_hash: String = Block::block_hash_from_params(prev_block.index + 1, &timestamp, bpm.clone(), Some(&prev_block.hash));
+        Block {
+            index: prev_block.index + 1,
+            timestamp: timestamp,
+            bpm: bpm,
+            hash: new_block_hash,
+            prev_hash: Some(prev_block.hash),
+            validator: validator
+        }
+    }
+
     
 }
 
