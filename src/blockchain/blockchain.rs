@@ -1,7 +1,7 @@
 use core::time;
 use serde::{Serialize, Deserialize};
 use serde_json;
-use crate::Block;
+use crate::blockchain::block::Block;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Blockchain {

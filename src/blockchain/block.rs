@@ -3,7 +3,8 @@ use core::time;
 use serde::{Serialize, Deserialize};
 use serde_json;
 use crate::staking;
-use crate::util;
+use crate::util::{chrono_timestamp, hash_input};
+use crate::staking::validator::Validator;
 
 // use crate::utils // <- add to this
 
@@ -36,7 +37,7 @@ impl Block {
             timestamp: timestamp.to_string(),
             bpm: bpm,
             hash: new_block_hash,
-            prev_hash: prev_hash.clone(),
+            prev_hash: prev_hash.cloned(),
             validator: validator
         }
     }
