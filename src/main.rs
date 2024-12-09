@@ -1,10 +1,105 @@
 mod blockchain;
 mod staking;
 mod util;
+mod mempool;
+
+use util::{chrono_timestamp, default_validator_set, genesis_block, get_block_with_height, initialize_blockstore_with_genesis, initialize_candidatestore, purge_dbs};
+use dotenv::dotenv;
+use mempool::{Storage, Blockstore, CandidateStore, get_candidate_pool};
+use std::{env, path::PathBuf};
+use blockchain::{block::Block, blockchain::Blockchain};
+use staking::validator::{Validator, Vote, get_validator_weight};
+use util::{hash_input};
 
 
 
 
+fn main() {
+    dotenv().ok(); // checking for .env
+    // set up env variables here
+    let block_db_path: String = env::var("DEFAULT_BLOCK_DB_PATH").expect("Failed to get path");
+    let candidate_db_path: String = env::var("DEFAULT_CANDIDATE_DB_PATH").expect("Failed to get path");
+
+    purge_dbs(PathBuf::from(&block_db_path), PathBuf::from(&candidate_db_path));
+
+    // let blocktime: u64 = env::var(DEFAULT_BLOCK_TIME).expect("Failed to get block time");
+    let blocktime = 60;
+
+
+
+    let validators: Vec<Validator> = default_validator_set();
+
+    let block_storage = Storage {
+        path: PathBuf::from(block_db_path)
+    };
+
+    let candidate_storage = Storage{
+        path: PathBuf::from(candidate_db_path)
+    };
+
+    initialize_blockstore_with_genesis(&block_storage);
+
+    initialize_candidatestore(&candidate_storage);
+
+    let mut height: u64 = 1;
+
+    let mut participants: Vec<&Validator> = Vec::new();
+
+    // loop through block proposals and validates new blocks every minute
+
+    loop {
+        let previous_block: Block = get_block_with_height(&block_storage, &(height-1));
+
+        if &chrono_timestamp().parse::<u64>().unwrap() > &(previous_block.timestamp.parse::<u64>().unwrap() + blocktime){
+
+            // validator proposes new blocks
+            // loop through each validator in the validators vector
+            for validator in &validators {
+                if participants.contains(&validator){
+                    continue;
+                }
+                // generate a new block with random bpm, placeholder for payload/data
+                let block: Block = Block::generate(previous_block.clone(), hash_input(&chrono_timestamp()), validator.clone());
+
+                // put block in mempool
+                let _ = CandidateStore::insert(&candidate_storage, height, block);
+                participants.push(&validator);
+            };
+
+            // Throws error if mempool is empty
+            let pool: Blockchain = get_candidate_pool(&candidate_storage, &height);
+
+            if pool.blocks.len() > 0 {
+                let mut votes: Vec<Vote> = Vec::new();
+                let mut total_votes: u64 = 0;
+                let mut round_weights: Vec<(Block, u128)> = Vec::new();
+
+                for block in pool.blocks{
+                    votes.push(Vote { block: block.clone(), stake: block.clone().validator.stake });
+                    total_votes += &block.validator.stake;
+                };
+
+                for vote in &votes {
+                    round_weights.push((vote.block.clone(), get_validator_weight(vote.block.validator.stake, total_votes)));
+
+
+                }
+
+                let lotto_winner: Block = {
+                    round_weights.iter().max_by_key(|&(_block, value)| value).unwrap().0.clone()
+                };
+
+                let _ = Blockstore::insert(&block_storage, height, lotto_winner);
+            
+                height += 1;
+                participants = Vec::new();
+            }
+
+
+        }
+    }
+
+}
 
 
 
