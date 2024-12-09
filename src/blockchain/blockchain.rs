@@ -17,7 +17,7 @@ impl Blockchain{
         serde_json::to_string(self).expect("Failed to serialize Block")
     }
 
-    pub fn from_string(blockchain: String) -> String {
+    pub fn from_string(blockchain: String) -> Blockchain {
         serde_json::from_str(&blockchain).expect("Failed to deserialize")
     }
 }

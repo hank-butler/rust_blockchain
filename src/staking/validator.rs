@@ -25,6 +25,8 @@ pub fn get_validator_weight(stake: u64, total_votes: u64) -> u128 {
 }
 
 
+
+
 // use crate::transaction::Transaction;
 
 // pub struct Validator {

@@ -4,7 +4,7 @@ use chrono::{DateTime, Local};
 use crate::blockchain::block::Block;
 use crate::blockchain::blockchain::Blockchain;
 use crate::staking::validator::Validator;
-use crate::mempool::{Blockstorage, CandidateStore, Storage, Blockstore};
+use crate::mempool::{CandidateStore, Storage, Blockstore};
 use std::fs;
 use std::path::{Path, PathBuf};
 use rand::Rng;
@@ -67,7 +67,7 @@ pub fn initialize_candidatestore(storage: &Storage) {
 
 pub fn get_block_with_height(storage: &Storage, height: &u64) -> Block {
     let mempool = CandidateStore::height(storage, height.clone()).unwrap().expect("Failed to get mempool");
-    Blockchain::from_string(mempool)
+    Block::from_string(mempool)
 
 }
 

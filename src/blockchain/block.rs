@@ -2,7 +2,6 @@ use core::time;
 
 use serde::{Serialize, Deserialize};
 use serde_json;
-use crate::staking;
 use crate::util::{chrono_timestamp, hash_input};
 use crate::staking::validator::Validator;
 
@@ -94,7 +93,7 @@ impl Block {
     }
 
     pub fn block_hash_from_params(index: u64, timestamp: &str, bpm: String, prev_hash: Option<&String>) -> String {
-        hash_input(&format!("{}{}{}{}", index, timestamp, bpm, prev_hash))
+        hash_input(&format!("{}{}{}{}", index, timestamp, bpm, prev_hash.unwrap_or(&"genesis".to_string())))
     }
 
 
