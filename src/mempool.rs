@@ -62,3 +62,23 @@ pub trait CandidateStore {
     fn height(&self, height: u64) -> Result<Option<String>>;
 }
 
+impl Blockstore for Storage {
+    fn insert(&self, height: u64, block: Block) -> Result<()> {
+        let conn: Connection = Connection::open(&self.path)?;
+        conn.execute(
+            "INSERT INTO data (height, block) VALUES (?1, ?2)",
+            &[&heigh.to_string(), &block.to_string()],
+        )?;
+
+        info!("Block inserted at height  {}", height);
+        Ok(())
+    }
+
+    fn height(&self, height: u64) -> Result<Option<String>> {
+        let conn: Connection = Connection::open(&self.path)?;
+        let mut statement = conn.prepare(
+            "SELECT block FROM data WHERE height = ?1 LIMIT 1")?;
+        statement.query_row([&height], |row| row.get(0)).optional()
+    }
+}
+
