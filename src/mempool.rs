@@ -82,3 +82,37 @@ impl Blockstore for Storage {
     }
 }
 
+impl CandidateStore for Storage {
+    fn insert(&self, height: u64, block: Block) -> Result<()> {
+        let serialized_candidates = self.height(height)?;
+        let mut candidates = match serialized_candidates {
+            Some(data) => Blockchain::from_string(data),
+            None => Blockchain {blocks: Vec::new()},
+        };
+
+        candidates.add_block(block);
+
+        let conn: Connection = Connection::open(&self.path)?;
+
+        if serialized_candidates.is_none() {
+            conn.execute(
+                "INSERT INTO candidates (height, blocks) VALUES (?1, ?2)",
+                &[&height.to_string(), &candidates.to_string()],
+            )?;
+        } else {
+            conn.execute(
+                "UPDATE candidates SET blocks = ?2 WHERE height = ?1", 
+                &[&height.to_string(), &candidates.to_string()],
+            )?;
+        }
+        info!("Candidate block inserted/updated at height {}", height);
+        Ok(())
+
+    }
+
+    fn height() -> Result<Option<String>> {
+        
+    }
+}
+
+// libp2p integration on ChatGPT
