@@ -64,3 +64,57 @@ impl BlockStore for Storage {
 
     }
 }
+
+impl CandidateStore for Storage {
+    fn create(&self) -> Result<()> {
+        let conn: Connection = Connection::open(&self.path)?;
+
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS data (
+                id INTEGER PRIMARY KEY,
+                height INTEGER,
+                block TEXT NOT NULL
+                )",
+        [],
+    )?;
+    Ok(())
+    }
+
+    fn insert(&self, height: u64, block: Block) -> Result<()> {
+
+        let candidates_serialized: Option<String> = CandidateStore::height(self, height).expect("Failed to get mempool from Candidate Store");
+
+        let mut is_first_entry: bool = bool::default();
+        let mut candidates: Blockchain = match candidates_serialized {
+            Some(candidates) => {
+                Blockchain::from_string(candidates)
+            },
+            None => {
+                is_first_entry = true;
+                Blockchain{
+                    blocks: Vec::new()
+                }
+            }
+        };
+
+        println!("Current Block Candidates: {:?}", &candidates.blocks.len());
+
+        candidates.add_block(block);
+
+        let conn: Connection = Connection::open(&self.path)?;
+
+        if is_first_entry {
+            conn.execute (
+                "INSERT INTO data (height, blocks) VALUES (?1, ?2)",
+                &[&height.to_string(), &candidates.to_string()],
+            )?;
+        } else {
+            conn.execut(
+                "UPDATE data SET blocks = ?2 WHERE height = ?1",
+                &[&height.to_string(), &candidates.to_string()]
+            )?;
+        }
+        Ok(())
+
+    }
+}
