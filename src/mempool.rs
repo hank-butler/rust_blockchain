@@ -1,3 +1,4 @@
+use rocket::http::uri::Path;
 use rocket::time::format_description::modifier::UnixTimestamp;
 use rusqlite;
 use rusqlite::{Connection, Result, OptionalExtension};
@@ -135,9 +136,27 @@ impl CandidateStore for Storage {
 
 
 #[test]
+fn test_block_store(){
+    use crate::util::genesis_block;
+    dotenv().ok();
+    let block_db_path = env::var("DEFAULT_BLOCK_DB_PATH").expect("Failed to get Block DB Path");
+    let storage = Storage {
+        path: PathBuf::from(block_db_path.clone())
+    };
+
+    let _ = BlockStore::create(&storage).expect("Failed to create Block Store");
+    let genesis_block = genesis_block();
+    let _ = BlockStore::insert(&storage, 0, genesis_block);
+    let block = BlockStore::height(&storage, 0).unwrap();
+    println!("Block: {:?}", &block);
+}
+
+
+
+#[test]
 fn test_candidate_store(){
     use crate::util::{chrono_timestamp, genesis_block, create_validator_set};
-    use crate::staking::validator;
+    use crate::staking::validator::Validator;
     dotenv().ok();
 
     let candidate_db_path = env::var("DEFAULT_CANDIDATE_DB_PATH").expect("Failed to get Candidate DB Path");
@@ -146,5 +165,20 @@ fn test_candidate_store(){
         path: PathBuf::from(candidate_db_path.clone())
     };
 
-    
+    let _ = CandidateStore::create(&storage).expect("Failed to create Candidate Store");
+    let balances: Vec<u64> = vec![25, 50, 75, 100];
+    let validators: Vec<Validator> = create_validator_set(balances.len() as u64, balances);
+    let genesis_block: Block = genesis_block();
+
+    for validator in validators {
+        let _ = CandidateStore::insert(&storage, 1, Block::generate(genesis_block.clone(), 
+        hash_input(&chrono_timestamp()), validator));
+
+        std::thread::sleep(std::time::Duration::from_millis(1000)); // sleep for a second
+    }
+    let pool = CandidateStore::height(&storage, 1).unwrap();
+
+    println!("Current pool: {:?}", &pool);
+
+
 }
