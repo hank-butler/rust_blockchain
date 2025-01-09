@@ -4,7 +4,7 @@ use chrono::{DateTime, Local};
 use crate::blockchain::block::Block;
 use crate::blockchain::blockchain::Blockchain;
 use crate::staking::validator::Validator;
-use crate::mempool::{CandidateStore, Storage, Blockstore};
+use crate::mempool::{CandidateStore, Storage, BlockStore};
 use std::fs;
 use std::path::{Path, PathBuf};
 use rand::Rng;
@@ -57,8 +57,8 @@ pub fn default_validator_set() -> Vec<Validator>{
 }
 
 pub fn initialize_blockstore_with_genesis(storage: &Storage){
-    let _ = Blockstore::create(storage);
-    let _ = Blockstore::insert(storage, 0, genesis_block());
+    let _ = BlockStore::create(storage);
+    let _ = BlockStore::insert(storage, 0, genesis_block());
 }
 
 pub fn initialize_candidatestore(storage: &Storage) {

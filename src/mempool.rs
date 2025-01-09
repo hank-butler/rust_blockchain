@@ -109,7 +109,7 @@ impl CandidateStore for Storage {
                 &[&height.to_string(), &candidates.to_string()],
             )?;
         } else {
-            conn.execut(
+            conn.execute(
                 "UPDATE data SET blocks = ?2 WHERE height = ?1",
                 &[&height.to_string(), &candidates.to_string()]
             )?;
@@ -117,4 +117,34 @@ impl CandidateStore for Storage {
         Ok(())
 
     }
+
+    fn height(&self, height: u64) -> Result<Option<String>> {
+        let conn: Connection = Connection::open(&self.path)?;
+
+        let mut stmt: rusqlite::Statement<'_> = conn.prepare("SELECT height, blocks FROM data WHERE height = ?1 LIMIT 1")?;
+
+        match stmt.query_row(&[&height], |row| {
+            let blocks: String = row.get(1)?;
+            Ok(blocks)
+        }) {
+            Ok(b) => Ok(Some(b)),
+            Err(err) => Ok(None),
+        }
+    }
+}
+
+
+#[test]
+fn test_candidate_store(){
+    use crate::util::{chrono_timestamp, genesis_block, create_validator_set};
+    use crate::staking::validator;
+    dotenv().ok();
+
+    let candidate_db_path = env::var("DEFAULT_CANDIDATE_DB_PATH").expect("Failed to get Candidate DB Path");
+
+    let storage = Storage{
+        path: PathBuf::from(candidate_db_path.clone())
+    };
+
+    
 }
