@@ -1,14 +1,11 @@
-use rocket::http::uri::Path;
-use rocket::time::format_description::modifier::UnixTimestamp;
 use rusqlite;
-use rusqlite::{Connection, Result, OptionalExtension};
+use rusqlite::{Connection, Result};
 use std::path::PathBuf;
-use dotenv::dotenv;
-use std::env;
-use crate::util::hash_input;
 use crate::blockchain::block::Block;
 use crate::blockchain::blockchain::Blockchain;
-use log::{info, error};
+use crate::util::hash_input;
+use std::env;
+use dotenv::dotenv;
 
 pub struct Storage {
     pub path: PathBuf
@@ -72,64 +69,61 @@ impl CandidateStore for Storage {
 
         conn.execute("
             CREATE TABLE IF NOT EXISTS data (
-                id INTEGER PRIMARY KEY,
-                height INTEGER,
-                block TEXT NOT NULL
-                )",
+            id INTEGER PRIMARY KEY,
+            height INTEGER,
+            blocks TEXT NOT NULL    
+        )",
         [],
     )?;
     Ok(())
     }
 
     fn insert(&self, height: u64, block: Block) -> Result<()> {
+        let candidates_serialized = match CandidateStore::height(self, height) {
+            Ok(Some(data)) => Some(data),
+            Ok(None) => None,
+            Err(e) => return Err(e),
+        };
 
-        let candidates_serialized: Option<String> = CandidateStore::height(self, height).expect("Failed to get mempool from Candidate Store");
-
-        let mut is_first_entry: bool = bool::default();
-        let mut candidates: Blockchain = match candidates_serialized {
-            Some(candidates) => {
-                Blockchain::from_string(candidates)
-            },
+        let mut is_first_entry: bool = false;
+        let mut candidates = match candidates_serialized {
+            Some(candidates) => Blockchain::from_string(candidates),
             None => {
                 is_first_entry = true;
-                Blockchain{
-                    blocks: Vec::new()
-                }
+                Blockchain { blocks: Vec::new()}
             }
         };
 
-        println!("Current Block Candidates: {:?}", &candidates.blocks.len());
+        println!("Current Block Candidaets: {}", candidates.blocks.len());
 
         candidates.add_block(block);
 
         let conn: Connection = Connection::open(&self.path)?;
 
         if is_first_entry {
-            conn.execute (
-                "INSERT INTO data (height, blocks) VALUES (?1, ?2)",
-                &[&height.to_string(), &candidates.to_string()],
-            )?;
-        } else {
             conn.execute(
                 "UPDATE data SET blocks = ?2 WHERE height = ?1",
-                &[&height.to_string(), &candidates.to_string()]
+                &[&height.to_string(), &candidates.to_string()],
             )?;
         }
-        Ok(())
 
+        Ok(())
     }
 
     fn height(&self, height: u64) -> Result<Option<String>> {
         let conn: Connection = Connection::open(&self.path)?;
 
-        let mut stmt: rusqlite::Statement<'_> = conn.prepare("SELECT height, blocks FROM data WHERE height = ?1 LIMIT 1")?;
+        let mut stmt = conn.prepare("
+            SELECT height, blocks FROM data WHERE height = ?1 LIMIT 1
+        ")?;
 
         match stmt.query_row(&[&height], |row| {
             let blocks: String = row.get(1)?;
             Ok(blocks)
         }) {
             Ok(b) => Ok(Some(b)),
-            Err(err) => Ok(None),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e),
         }
     }
 }
@@ -154,31 +148,40 @@ fn test_block_store(){
 
 
 #[test]
-fn test_candidate_store(){
+fn test_candidate_store() -> Result<(), Box<dyn std::error::Error>> {
     use crate::util::{chrono_timestamp, genesis_block, create_validator_set};
     use crate::staking::validator::Validator;
     dotenv().ok();
 
-    let candidate_db_path = env::var("DEFAULT_CANDIDATE_DB_PATH").expect("Failed to get Candidate DB Path");
+    let candidate_db_path = env::var("DEFAULT_CANDIDATE_DB_PATH")
+        .expect("Failed to get Candidate DB Path");
 
-    let storage = Storage{
+    let storage = Storage {
         path: PathBuf::from(candidate_db_path.clone())
     };
 
-    let _ = CandidateStore::create(&storage).expect("Failed to create Candidate Store");
+    CandidateStore::create(&storage).expect("Failed to create Candidate Store");
+
     let balances: Vec<u64> = vec![25, 50, 75, 100];
+
     let validators: Vec<Validator> = create_validator_set(balances.len() as u64, balances);
+
     let genesis_block: Block = genesis_block();
 
     for validator in validators {
-        let _ = CandidateStore::insert(&storage, 1, Block::generate(genesis_block.clone(), 
-        hash_input(&chrono_timestamp()), validator));
+        let new_block = Block::generate(
+            genesis_block.clone(),
+            hash_input(&chrono_timestamp()),
+            validator
+        )?;
 
-        std::thread::sleep(std::time::Duration::from_millis(1000)); // sleep for a second
+        CandidateStore::insert(&storage, 1, new_block);
+
+        std::thread::sleep(std::time::Duration::from_millis(1000));
     }
-    let pool = CandidateStore::height(&storage, 1).unwrap();
 
+    let pool = CandidateStore::height(&storage, 1)?;
     println!("Current pool: {:?}", &pool);
 
-
+    Ok(())
 }

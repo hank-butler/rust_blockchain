@@ -101,7 +101,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 round_participants.push(&validator);
             };
 
-            let pool: Blockchain = get_candidate_pool(&candidate_storage, height);
+            let pool = match get_candidate_pool(&candidate_storage, height) {
+                Ok(pool) => pool,
+                Err(e) => {
+                    eprintln!("Error getting candidate pool: {}", e);
+                    Blockchain { blocks: Vec::new() }
+                }
+            };
 
             println!("Blocks proposed: {}", &pool.blocks.len());
 

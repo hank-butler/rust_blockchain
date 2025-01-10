@@ -4,6 +4,7 @@ use crate::blockchain::blockchain::Blockchain;
 use crate::util::generate_random_number;
 use crate::blockchain::block::Block;
 use crate::mempool::{CandidateStore, Storage};
+use std::error::Error;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 
@@ -25,9 +26,18 @@ pub fn get_validator_weight(stake: u64, total_votes: u64) -> u128 {
     return weight;
 }
 
-pub fn get_candidate_pool(storage: &Storage, height: u64) -> Blockchain {
-    let serialized_pool = CandidateStore::height(storage, height.clone()).unwrap().expect("Failed to get mempool");
-    Blockchain::from_string(serialized_pool)
+pub fn get_candidate_pool(storage: &Storage, height: u64) -> Result<Blockchain, Box<dyn Error>> {
+    let serialized_pool = match CandidateStore::height(storage, height) {
+        Ok(Some(pool)) => pool,
+        Ok(None) => {
+            return Ok(Blockchain { blocks: Vec::new()});
+        },
+        Err(e) => {
+            return Err(Box::new(e));
+        }
+    };
+
+    Ok(Blockchain::from_string(serialized_pool))
 }
 
 
