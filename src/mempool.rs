@@ -58,7 +58,7 @@ impl BlockStore for Storage {
             Ok(block)
         }) {
             Ok(b) => Ok(Some(b)),
-            Err(err) => Ok(None),
+            Err(_) => Ok(None),
         }
 
     }
@@ -80,43 +80,41 @@ impl CandidateStore for Storage {
     }
 
     fn insert(&self, height: u64, block: Block) -> Result<()> {
-        let conn: Connection = Connection::open(&self.path)?;
+        let mut conn: Connection = Connection::open(&self.path)?;
 
         let tx = conn.transaction()?;
 
-        let existing_blockchain = match self.height(height)? {
-            Some(serialized) => {
-                println!("Found existing blockchain at height{}", height);
-                Blockchain::from_string(serialized)
+        let blockchain_data = match CandidateStore::height(self, height) {
+            Ok(maybe_serialized) => match maybe_serialized {
+                Some(serialized) => {
+                    println!("Found existing blockchain at height: {}", height);
+                    Blockchain::from_string(serialized)
+                },
+                None => {
+                    println!("Creating new blockchain for height: {}", height);
+                    Blockchain { blocks: Vec::new() }
+                }
             },
-            None => {
-                println!("Creating new blockchain for height: {}", height);
-                Blockhain {blocks: Vec::new() }
-            }
+            Err(e) => return Err(e),
         };
 
-        let mut current_blockchain = existing_blockchain;
+        let is_empty = blockchain_data.blocks.is_empty();
 
-        println!("Current blocks in pool before adding: {}", current_blockchain.blocks.len() );
+        let mut current_blockchain = blockchain_data;
+        println!("Current blocks in pool before adding: {}", current_blockchain.blocks.len());
         current_blockchain.add_block(block);
         println!("Current blocks in pool after adding: {}", current_blockchain.blocks.len());
 
         let serialized = current_blockchain.to_string();
 
-        if existing_blockchain.blocks.is_empty() {
-            tx.execute(
-            "INSERT INTO data (height, blocks) VALUES (?1, ?2)",
-            &[&height.to_string(), &serialized],
-            )?;
-            println!("inserted new blockchain entry for height {}", height);
-        } else {
-            tx.execute(
-                "UPDATE data SET blocks = ?2 WHERE height =?1",
-                &[&height.to_string(), &serialized],
-            )?;
-            println!("Updated existing blockchain entry for height {}", height);
-        }
+        if is_empty {
+            tx.execute("INSERT INTO data (height, blocks) VALUES (?1, ?2)", &[&height.to_string(), &serialized],)?;
+            println!("Inserted new blockchain entry for height: {}", height);
 
+        } else {
+            tx.execute("UPDATE data SET blocks = ?2 WHERE height = ?1", &[&height.to_string(), &serialized],)?;
+            println!("Updated existing blockchain entry for height: {}", height);
+        }
         tx.commit()?;
 
         Ok(())
