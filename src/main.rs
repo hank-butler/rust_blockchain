@@ -3,42 +3,81 @@ mod staking;
 mod util;
 mod mempool;
 
-use chrono::round;
-use rocket::http::uri::Path;
-use util::{hash_input, chrono_timestamp, default_validator_set, genesis_block, get_block_with_height, initialize_blockstore_with_genesis, initialize_candidatestore, purge_dbs};
+use util::{hash_input, chrono_timestamp, default_validator_set, get_block_with_height, initialize_blockstore_with_genesis, initialize_candidatestore, purge_dbs};
 use dotenv::dotenv;
 use mempool::{Storage, BlockStore, CandidateStore,};
 use std::{env, path::PathBuf};
+use std::error::Error;
 use blockchain::{block::Block, blockchain::Blockchain};
 use staking::validator::{Validator, Vote, get_validator_weight, get_candidate_pool};
 
+struct Config {
+    blocktime: u64,
+    block_db_path: String,
+    candidate_db_path: String,
+    validator_count: u64,
+}
+
+impl Config {
+    fn from_env() -> Result<Self, util::BlockchainError> {
+        Ok(Config {
+            blocktime: env::var("DEFAULT_BLOCK_TIME")
+                .map_err(|_| util::BlockchainError::StorageError("Missing block time config".to_string()))?
+                .parse()
+                .map_err(|_| util::BlockchainError::StorageError("Invalid block time format".to_string()))?,
+            block_db_path: env::var("DEFAULT_BLOCK_DB_PATH")
+                .map_err(|_| util::BlockchainError::StorageError("Missing block DB path".to_string()))?,
+            candidate_db_path: env::var("DEFAULT_CANDIDATE_DB_PATH")
+            .map_err(|_| util::BlockchainError::StorageError("Missing candidate db path".to_string()))?,
+            validator_count: 10,    
+        })
+    }
+}
 
 
-
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
 
-    let block_db_path: String = env::var("DEFAULT_BLOCK_DB_PATH").expect("Failed to get block db path");
+    let config = Config::from_env()?;
 
-    let candidate_db_path: String = env::var("DEFAULT_CANDIDATE_DB_PATH").expect("failed to get candidate db path");
+    let block_storage = Storage {
+        path: PathBuf::from(&config.block_db_path)
+    };
 
-    purge_dbs(PathBuf::from(&block_db_path), PathBuf::from(&candidate_db_path));;
+    let candidate_storage = Storage {
+        path: PathBuf::from(&config.candidate_db_path)
+    };
 
-    let blocktime: u64 = env::var("DEFAULT_BLOCK_TIME").expect("Failed to get block time").parse().expect("Failed to parse block time");
+    if let Err(e) = initialize_blockstore_with_genesis(&block_storage) {
+        eprintln!("Failed to initialize block storage: {:?}", e);
+        return Err(Box::new(util::BlockchainError::StorageError(
+            "Failed to initialize block storage".to_string()
+        )));
+    }
+
+    purge_dbs(PathBuf::from(&config.block_db_path), PathBuf::from(&config.candidate_db_path));
 
     let validators: Vec<Validator> = default_validator_set();
 
-    let block_storage = Storage {
-        path: PathBuf::from(block_db_path)
-    };
+    
 
-    let candidate_storage = Storage{
-        path: PathBuf::from(candidate_db_path)
-    };
+    // initialize_blockstore_with_genesis(&block_storage);
 
-    initialize_blockstore_with_genesis(&block_storage);
+    // initialize_candidatestore(&candidate_storage);
 
-    initialize_candidatestore(&candidate_storage);
+    if let Err(e) = initialize_blockstore_with_genesis(&block_storage) {
+        eprintln!("Failed to initialize block storage: {:?}", e);
+        return Err(Box::new(util::BlockchainError::StorageError(
+            "Failed to initialize block storage".to_string()
+        )));
+    }
+
+    if let Err(e) = initialize_candidatestore(&candidate_storage) {
+        eprintln!("Failed to initialize candidate storage: {:?}", e);
+        return Err(Box::new(util::BlockchainError::StorageError(
+            "Failed to initialize candidate storage".to_string()
+        )));
+    }
 
     let mut height: u64 = 1;
 
@@ -47,13 +86,13 @@ fn main() {
     loop {
         let prev_block: Block = get_block_with_height(&block_storage, &(height-1));
 
-        if &chrono_timestamp().parse::<u64>().unwrap() > &(prev_block.timestamp.parse::<u64>().unwrap() + blocktime) {
+        if &chrono_timestamp().parse::<u64>().unwrap() > &(prev_block.timestamp.parse::<u64>().unwrap() + config.blocktime) {
             for validator in &validators {
                 if round_participants.contains(&validator) {
                     continue;
                 }
 
-                let block: Block = Block::generate(prev_block.clone(), hash_input(&chrono_timestamp()), validator.clone());
+                let block: Block = Block::generate(prev_block.clone(), hash_input(&chrono_timestamp()), validator.clone())?;
 
                 let _ = CandidateStore::insert(&candidate_storage, height, block);
 

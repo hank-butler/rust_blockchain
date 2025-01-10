@@ -1,8 +1,7 @@
-use core::time;
 
 use serde::{Serialize, Deserialize};
 use serde_json;
-use crate::util::{chrono_timestamp, hash_input};
+use crate::util::{chrono_timestamp, hash_input, BlockchainError};
 use crate::staking::validator::Validator;
 
 // use crate::utils // <- add to this
@@ -41,21 +40,49 @@ impl Block {
         }
     }
 
+    // pub fn generate(
+    //     prev_block: Block, 
+    //     bpm: String, 
+    //     validator: Validator
+    // ) -> Block {
+    //     let timestamp: String = chrono_timestamp();
+    //     let new_block_hash: String = Block::block_hash_from_params(prev_block.index + 1, &timestamp, bpm.clone(), Some(&prev_block.hash));
+    //     Block {
+    //         index: prev_block.index + 1,
+    //         timestamp: timestamp,
+    //         bpm: bpm,
+    //         hash: new_block_hash,
+    //         prev_hash: Some(prev_block.hash),
+    //         validator: validator
+    //     }
+    // }
     pub fn generate(
-        prev_block: Block, 
-        bpm: String, 
+        prev_block: Block,
+        hash: String,
         validator: Validator
-    ) -> Block {
-        let timestamp: String = chrono_timestamp();
-        let new_block_hash: String = Block::block_hash_from_params(prev_block.index + 1, &timestamp, bpm.clone(), Some(&prev_block.hash));
-        Block {
-            index: prev_block.index + 1,
-            timestamp: timestamp,
-            bpm: bpm,
-            hash: new_block_hash,
-            prev_hash: Some(prev_block.hash),
-            validator: validator
+    ) -> Result<Block, BlockchainError> {
+        if prev_block.hash.is_empty() {
+            return Err(BlockchainError::ValidationError("Previous block hash cannot be empty".to_string()));
         }
+
+        let prev_timestamp = prev_block.timestamp.parse::<u64>()
+            .map_err(|_| BlockchainError::ValidationError("Invalid previous timestamp".to_string()))?;
+
+        let current_timestamp = chrono_timestamp().parse::<u64>()
+            .map_err(|_| BlockchainError::ValidationError("Invalid current timestamp".to_string()))?;
+
+        if current_timestamp <= prev_timestamp {
+            return Err(BlockchainError::ValidationError("Block time stamp must be greater than previous".to_string()));
+        }
+
+        Ok(Block {
+            index: prev_block.index + 1,
+            timestamp: chrono_timestamp(),
+            bpm: String::from("0"),
+            hash,
+            prev_hash: Some(prev_block.hash),
+            validator
+        })
     }
 
     pub fn validate(

@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use crate::blockchain::blockchain::Blockchain;
 // use serde_json;
-use crate::util::{hash_input, chrono_timestamp,generate_random_number};
+use crate::util::generate_random_number;
 use crate::blockchain::block::Block;
 use crate::mempool::{CandidateStore, Storage};
 

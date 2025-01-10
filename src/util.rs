@@ -1,13 +1,36 @@
 use sha2::{Sha256, Digest};
 use hex;
-use chrono::{DateTime, Local};
+use chrono::Local;
 use crate::blockchain::block::Block;
-use crate::blockchain::blockchain::Blockchain;
 use crate::staking::validator::Validator;
 use crate::mempool::{CandidateStore, Storage, BlockStore};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::error::Error;
+use std::fmt;
 use rand::Rng;
+
+#[derive(Debug)]
+pub enum BlockchainError {
+    StorageError(String),
+    ValidationError(String),
+    BlockNotFound(u64),
+    DatabaseError(rusqlite::Error),
+}
+
+impl fmt::Display for BlockchainError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            BlockchainError::StorageError(msg) => write!(f, "Storage Error: {}", msg),
+            BlockchainError::ValidationError(msg) => write!(f, "Validattion Error: {}", msg),
+            BlockchainError::BlockNotFound(height) => write!(f, "Block not found at height: {}", height),
+            BlockchainError::DatabaseError(e) => write!(f, "Database error: {}", e),
+
+        }
+    }
+}
+
+impl Error for BlockchainError {}
 
 pub fn hash_input(input: &str) -> String {
     let mut hasher = Sha256::new();
@@ -56,18 +79,30 @@ pub fn default_validator_set() -> Vec<Validator>{
     create_validator_set(stakes.len() as u64, stakes)
 }
 
-pub fn initialize_blockstore_with_genesis(storage: &Storage){
-    let _ = BlockStore::create(storage);
-    let _ = BlockStore::insert(storage, 0, genesis_block());
+pub fn initialize_blockstore_with_genesis(storage: &Storage) -> Result<(), Box<dyn std::error::Error>> {
+    // let _ = BlockStore::create(storage);
+    // let _ = BlockStore::insert(storage, 0, genesis_block());
+    BlockStore::create(storage)?;
+    BlockStore::insert(storage, 0, genesis_block())?;
+    Ok(())
+    
+
 }
 
-pub fn initialize_candidatestore(storage: &Storage) {
-    let _ = CandidateStore::create(storage);
+pub fn initialize_candidatestore(storage: &Storage) -> Result<(), Box<dyn std::error::Error>> {
+    // let _ = CandidateStore::create(storage);
+    CandidateStore::create(storage)?;
+    Ok(())
 }
 
 pub fn get_block_with_height(storage: &Storage, height: &u64) -> Block {
-    let mempool = CandidateStore::height(storage, height.clone()).unwrap().expect("Failed to get mempool");
-    Block::from_string(mempool)
+    // let mempool = CandidateStore::height(storage, height.clone()).unwrap().expect("Failed to get mempool");
+    // Block::from_string(mempool)
+    match BlockStore::height(storage, height.clone()) {
+        Ok(Some(block_string)) => Block::from_string(block_string),
+        Ok(None) => panic!("No block found at height: {}", height),
+        Err(e) => panic!("Error retrieving block: {:?}", e),
+    }
 
 }
 
@@ -98,59 +133,3 @@ pub fn generate_random_number() -> u64{
 
 
 
-
-
-
-
-// use ed25519_dalek::{ed25519::Error, PublicKey, Signature, Verifier, SigningKey};
-// use hex::FromHexError;
-// use log::{warn, info};
-// use sha2::{Sha256, Digest};
-// use uuid::Uuid;
-
-// pub struct Util;
-
-// pub enum VerifySigErr {
-//     DecodeStrError(FromHexError),
-//     DecodeHexError(ed25519_dalek::ed25519::Error)
-// }
-
-// impl From<FromHexError> for VerifySigErr{
-//     fn from (err: FromHexError) -> Self {
-//         VerifySigErr::DecodeStrError(err)
-//     }
-// }
-
-// impl Util {
-//     pub fn id() -> Uuid {
-//         Uuid::new_v4()
-//     }
-
-//     pub fn verify_signature(
-//         from_public_key: &String,
-//         message: &String,
-//         from_signature: &String,
-//     ) -> Result<bool, VerifySigErr> {
-//         let public_key = hex::decode(from_public_key);
-//         let dalek_public_key = PublicKey::from_bytes(&public_key)?;
-//         // let dalek_public_key = SigningKey::(&public_key)?;
-
-//         let signature = hex::decode(from_signature)?;
-//         let dalek_sig = &Signature::from_bytes(&signature)?;
-
-//         Ok(dalek_public_key
-//             .verify(message.as_bytes(), dalek_sig)
-//             .is_ok())
-//     }
-
-//     pub fn hash(data: &String) -> String {
-        
-//         let mut hasher = Sha256::default();
-
-//         hasher.input(data);
-
-//         let output = hasher.result().to_string();
-
-//         output
-//     }
-// }
