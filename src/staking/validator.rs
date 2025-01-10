@@ -27,17 +27,24 @@ pub fn get_validator_weight(stake: u64, total_votes: u64) -> u128 {
 }
 
 pub fn get_candidate_pool(storage: &Storage, height: u64) -> Result<Blockchain, Box<dyn Error>> {
-    let serialized_pool = match CandidateStore::height(storage, height) {
-        Ok(Some(pool)) => pool,
+    println!("Attempting to get candidate pool for height: {}", height);
+
+    match CandidateStore::height(storage, height) {
+        Ok(Some(serialized_pool)) => {
+            println!("Found pool data: {}", &serialized_pool);
+            let blockchain = Blockchain::from_string(serialized_pool);
+            println!("Deserialized pool contains {} blocks", blockchain.blocks.len());
+            Ok(blockchain)
+        },
         Ok(None) => {
-            return Ok(Blockchain { blocks: Vec::new()});
+            println!("No pool found for height {}, returning empty blockchain", height);
+            Ok(Blockchain {blocks: Vec::new()})
         },
         Err(e) => {
-            return Err(Box::new(e));
+            println!("Error retrieving pool: {:?}", e);
+            Err(Box::new(e))
         }
-    };
-
-    Ok(Blockchain::from_string(serialized_pool))
+    }
 }
 
 

@@ -1,6 +1,7 @@
 use rusqlite;
 use rusqlite::{Connection, Result};
 use std::path::PathBuf;
+use std::thread::current;
 use crate::blockchain::block::Block;
 use crate::blockchain::blockchain::Blockchain;
 use crate::util::hash_input;
@@ -79,33 +80,44 @@ impl CandidateStore for Storage {
     }
 
     fn insert(&self, height: u64, block: Block) -> Result<()> {
-        let candidates_serialized = match CandidateStore::height(self, height) {
-            Ok(Some(data)) => Some(data),
-            Ok(None) => None,
-            Err(e) => return Err(e),
-        };
+        let conn: Connection = Connection::open(&self.path)?;
 
-        let mut is_first_entry: bool = false;
-        let mut candidates = match candidates_serialized {
-            Some(candidates) => Blockchain::from_string(candidates),
+        let tx = conn.transaction()?;
+
+        let existing_blockchain = match self.height(height)? {
+            Some(serialized) => {
+                println!("Found existing blockchain at height{}", height);
+                Blockchain::from_string(serialized)
+            },
             None => {
-                is_first_entry = true;
-                Blockchain { blocks: Vec::new()}
+                println!("Creating new blockchain for height: {}", height);
+                Blockhain {blocks: Vec::new() }
             }
         };
 
-        println!("Current Block Candidaets: {}", candidates.blocks.len());
+        let mut current_blockchain = existing_blockchain;
 
-        candidates.add_block(block);
+        println!("Current blocks in pool before adding: {}", current_blockchain.blocks.len() );
+        current_blockchain.add_block(block);
+        println!("Current blocks in pool after adding: {}", current_blockchain.blocks.len());
 
-        let conn: Connection = Connection::open(&self.path)?;
+        let serialized = current_blockchain.to_string();
 
-        if is_first_entry {
-            conn.execute(
-                "UPDATE data SET blocks = ?2 WHERE height = ?1",
-                &[&height.to_string(), &candidates.to_string()],
+        if existing_blockchain.blocks.is_empty() {
+            tx.execute(
+            "INSERT INTO data (height, blocks) VALUES (?1, ?2)",
+            &[&height.to_string(), &serialized],
             )?;
+            println!("inserted new blockchain entry for height {}", height);
+        } else {
+            tx.execute(
+                "UPDATE data SET blocks = ?2 WHERE height =?1",
+                &[&height.to_string(), &serialized],
+            )?;
+            println!("Updated existing blockchain entry for height {}", height);
         }
+
+        tx.commit()?;
 
         Ok(())
     }
