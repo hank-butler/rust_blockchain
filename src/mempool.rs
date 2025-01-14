@@ -30,7 +30,7 @@ impl BlockStore for Storage {
 
         conn.execute(
             "CREATE TABLE IF NOT EXISTS data (
-                id INTEGER PRIMARY KEY,
+                id INTEGER PRIMARY K                                                                                                                                                                                  EY,
                 height INTEGER,
                 block TEXT NOT NULL    
             )",
